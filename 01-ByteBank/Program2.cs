@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace _01_ByteBank
 {
+    /*
     class Program2
     {
         static void Main(string[] args)
@@ -22,5 +23,5 @@ namespace _01_ByteBank
 
             Console.ReadLine();
         }
-    }
+    } */
 }

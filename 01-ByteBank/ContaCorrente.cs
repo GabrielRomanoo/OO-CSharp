@@ -8,43 +8,29 @@ namespace _01_ByteBank
 {
     class ContaCorrente
     {
-        //private Cliente _titular;
-        //public Cliente Titular
-        //{
-        //    get
-        //    {
-        //        return _titular;
-        //    }
-        //    set
-        //    {
-        //        _titular = value;
-        //    }
-        //}
+        /*
+        private Cliente _titular;
+        public Cliente Titular
+        {
+            get
+            {
+                return _titular;
+            }
+            set
+            {
+                _titular = value;
+            }
+        } */
 
         public Cliente Titular //mesma coisa da linha do bloco  de codigo acima
         {
             get;
             set;
         }
+        //propriedade abaixo
+        public int Agencia { get; } // readonly
 
-        private int _agencia;
-        public int Agencia //propriedade
-        {
-            get
-            {
-                return _agencia;
-            }
-            set
-            {
-                if (value <= 0)
-                {
-                    return;
-                }
-                _agencia = value;
-            }
-        }
-
-        public int Numero { get; set; }
+        public int Numero { get; } //ele fica readonly, podendo ser apenas lido e setado uma unica vez, no construtor
 
         private double _saldo;
 
@@ -65,23 +51,48 @@ namespace _01_ByteBank
         }
 
         public static int TotalDeContasCriadas { get; private set; } //apenas o set eh private 
+        
+        public static double TaxaOperacao { get; private set; } //propriedade
+        public int ContadorTransferenciasNaoPermitidas { get; private set; }
+
+        public int ContadorSaquesNaoPermitidos { get; private set; }
+
+
 
         public ContaCorrente(int agencia, int numero)
         {
-            Agencia = agencia; //  vai usar o "set" do atributo agencia e consequentemente vai respeitar a regra de não permitir o valor negativo
+            if (agencia <= 0)
+            {
+                throw new ArgumentException("O argumento agencia deve ser maior que 0.", nameof(agencia));
+            }
+
+            if (numero <= 0)
+            {
+                throw new ArgumentException("O argumento numero deve ser maior que 0.", nameof(numero));
+            }
+
+            Agencia = agencia; 
             Numero = numero;
 
             ContaCorrente.TotalDeContasCriadas++;
+            TaxaOperacao = 30 / TotalDeContasCriadas;
+
         }
 
-        public bool Sacar(double valor)
+        public void Sacar(double valor)
         {
-            if (this._saldo >= valor)
+            if (valor < 0)
             {
-                this._saldo -= valor;
-                return true;
+                throw new ArgumentException("Valor inválido para o saque.", nameof(valor));
             }
-            return false;
+
+            if (_saldo < valor)
+            {
+                ContadorSaquesNaoPermitidos++;
+                throw new SaldoInsuficienteException(Saldo, valor);
+            }
+
+            _saldo -= valor;
         }
 
         public void Depositar(double valor)
@@ -91,11 +102,23 @@ namespace _01_ByteBank
 
         public bool Transferir(double valor, ContaCorrente contaDestino)
         {
-            if (this._saldo < valor)
+            if (valor < 0)
             {
-                return false;
+                throw new ArgumentException("Valor inválido para a transferencia.", nameof(valor));
             }
-            this._saldo -= valor;
+
+            try
+            {
+                Sacar(valor);
+            }
+            catch (SaldoInsuficienteException ex)
+            {
+                ContadorTransferenciasNaoPermitidas++;
+                //throw; //passa pra frente a excecao, sem exlcuir o rastro anterior na pilha
+                //trow ex; //exclui o rastro anteior da pilha e considera a  pilha a partir daqui
+                throw new OperacaoFinanceiraException("Operação nao realizada.", ex); //innerExcpetion (execao interna)
+            }
+
             contaDestino.Depositar(valor);
             return true;
         }
